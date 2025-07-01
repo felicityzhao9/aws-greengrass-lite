@@ -45,7 +45,7 @@ jobs:
           cd aws-greengrass-testing
 
           ./run-tests.sh \
-            --aws-account= ${{ secrets.AWS_ACCOUNT_ID }}\
+            --aws-account=${{ secrets.AWS_ACCOUNT_ID }}\
             --s3-bucket=${{ secrets.S3_BUCKET }} \
             --commit-id=${{ env.COMMIT_ID }} \
             --aws-region=${{ env.AWS_REGION }}
