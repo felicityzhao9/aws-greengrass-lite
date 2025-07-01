@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '>=3.12'
+          python-version: ">=3.12"
 
       # Checkout the public testing repo
       - name: Checkout testing repository
@@ -48,6 +48,6 @@ jobs:
 
         # ./run-tests.sh \
         #   --aws-account= ${{ secrets.AWS_ACCOUNT_ID }}\
-        #   --s3-bucket=${{ secrets.S3_BUCKET}} \
+        #   --s3-bucket=${{ secrets.S3_BUCKET }} \
         #   --commit-id=${{ env.COMMIT_ID }} \
         #   --aws-region=${{ env.AWS_REGION }}
