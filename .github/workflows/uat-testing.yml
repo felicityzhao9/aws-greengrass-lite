@@ -43,11 +43,9 @@ jobs:
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
-          echo "Environment Variables:"
-          echo "COMMIT_ID: ${{ env.COMMIT_ID }}"
 
-        # ./run-tests.sh \
-        #   --aws-account= ${{ secrets.AWS_ACCOUNT_ID }}\
-        #   --s3-bucket=${{ secrets.S3_BUCKET }} \
-        #   --commit-id=${{ env.COMMIT_ID }} \
-        #   --aws-region=${{ env.AWS_REGION }}
+          ./run-tests.sh \
+            --aws-account= ${{ secrets.AWS_ACCOUNT_ID }}\
+            --s3-bucket=${{ secrets.S3_BUCKET }} \
+            --commit-id=${{ env.COMMIT_ID }} \
+            --aws-region=${{ env.AWS_REGION }}
