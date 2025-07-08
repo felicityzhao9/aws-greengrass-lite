@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: "us-west-2"
-  COMMIT_ID: "25ca698f878ee481a8a2ade0d54499992f339122"
+  COMMIT_ID: "649d4d4946b5c0f558470117ff542c86f0b53d7b"
 
 jobs:
   uat-test:
