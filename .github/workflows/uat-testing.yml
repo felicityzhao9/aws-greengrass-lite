@@ -32,7 +32,6 @@ jobs:
         with:
           python-version: ">=3.12"
 
-      # Checkout the public testing repo
       - name: Checkout testing repository
         uses: actions/checkout@v4
         with:
