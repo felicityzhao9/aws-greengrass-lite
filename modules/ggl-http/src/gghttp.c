@@ -82,7 +82,7 @@ GglError sigv4_download(
 ) {
     CurlData curl_data = { 0 };
     GglError error = gghttplib_init_curl(&curl_data, url_for_sigv4_download);
-    uint8_t arr[2048];
+    uint8_t arr[4096];
     GglByteVec vec = GGL_BYTE_VEC(arr);
     uint8_t time_buffer[17];
     size_t date_len
