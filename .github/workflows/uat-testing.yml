@@ -2,7 +2,7 @@ name: UAT Pytest
 
 on:
   pull_request:
-    branches: "*"
+    branches: ["*"]
 
 env:
   AWS_REGION: "us-west-2"
