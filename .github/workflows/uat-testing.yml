@@ -2,11 +2,11 @@ name: UAT Pytest
 
 on:
   pull_request:
-    branches: "*"
+    branches: ["*"]
 
 env:
   AWS_REGION: "us-west-2"
-  COMMIT_ID: "25ca698f878ee481a8a2ade0d54499992f339122"
+  COMMIT_ID: "164b4191c98e91eb4650146720b00e1e0f43ec4d"
 
 jobs:
   uat-test:
@@ -32,7 +32,6 @@ jobs:
         with:
           python-version: ">=3.12"
 
-      # Checkout the public testing repo
       - name: Checkout testing repository
         uses: actions/checkout@v4
         with:
