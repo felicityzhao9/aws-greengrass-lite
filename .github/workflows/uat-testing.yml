@@ -1,12 +1,12 @@
-name: UAT Pytest
+name: UAT Pytests
 
 on:
   pull_request:
-    branches: ["*"]
+    branches: [main]
 
 env:
   AWS_REGION: "us-west-2"
-  COMMIT_ID: "164b4191c98e91eb4650146720b00e1e0f43ec4d"
+  COMMIT_ID: ${{ github.event.pull_request.head.sha }}
 
 jobs:
   uat-test:
@@ -20,13 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          audience: sts.amazonaws.com
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -35,9 +28,18 @@ jobs:
       - name: Checkout testing repository
         uses: actions/checkout@v4
         with:
-          repository: felicityzhao9/aws-greengrass-testing
+          repository: aws-greengrass/aws-greengrass-testing
           ref: python_testing
           path: aws-greengrass-testing
+
+      - name: Get temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          audience: sts.amazonaws.com
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-duration-seconds: 1000
+          unset-current-credentials: true
 
       - name: Run UAT tests
         run: |
