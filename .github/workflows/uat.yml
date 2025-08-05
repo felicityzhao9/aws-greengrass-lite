@@ -65,7 +65,7 @@ jobs:
           name:
             system-logs-${{ matrix.test-category.category }}-${{ github.run_id}}
           path: |
-            /var/log/syslog
-            /var/log/kern.log
             /var/log/dmesg
+            /var/log/kern.log
+            /var/log/syslog
           if-no-files-found: warn
