@@ -35,7 +35,7 @@ jobs:
       - name: Checkout testing repository
         uses: actions/checkout@v4
         with:
-          repository: aws-greengrass/aws-greengrass-testing
+          repository: felicityzhao9/aws-greengrass-testing
           ref: python_testing
           path: aws-greengrass-testing
 
@@ -57,6 +57,7 @@ jobs:
             --commit-id=${{ github.event.pull_request.head.sha }} \
             --aws-region=us-west-2 \
             --test-category=${{ matrix.test-category.category }}
+
       - name: Upload system logs
         if: always()
         uses: actions/upload-artifact@v4
