@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-category:
+        test-categories:
           [
             { category: component, timeout: 1000 },
             { category: deployment, timeout: 3900 },
@@ -45,7 +45,7 @@ jobs:
           audience: sts.amazonaws.com
           aws-region: us-west-2
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-duration-seconds: ${{ matrix.test-category.timeout }}
+          role-duration-seconds: ${{ matrix.test-categories.timeout }}
           unset-current-credentials: true
 
       - name: Run UAT tests
@@ -56,14 +56,14 @@ jobs:
             --s3-bucket=${{ secrets.S3_BUCKET }} \
             --commit-id=${{ github.event.pull_request.head.sha }} \
             --aws-region=us-west-2 \
-            --test-category=${{ matrix.test-category.category }}
+            --test-category=${{ matrix.test-categories.category }}
 
       - name: Upload system logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name:
-            system-logs-${{ matrix.test-category.category }}-${{ github.run_id}}
+            system-logs-${{ matrix.test-categories.category }}-${{ github.run_id}}
           path: |
             /var/log/dmesg
             /var/log/kern.log
