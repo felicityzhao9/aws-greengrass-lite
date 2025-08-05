@@ -57,3 +57,14 @@ jobs:
             --commit-id=${{ github.event.pull_request.head.sha }} \
             --aws-region=us-west-2 \
             --test-category=${{ matrix.test-category.category }}
+      - name: Upload system logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name:
+            system-logs-${{ matrix.test-category.category }}-${{ github.run_id}}
+          path: |
+            /var/log/syslog
+            /var/log/kern.log
+            /var/log/dmesg
+          if-no-files-found: warn
