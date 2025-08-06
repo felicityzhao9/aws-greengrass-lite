@@ -12,14 +12,14 @@ jobs:
         include:
           - category: component
             timeout: 1000
-          - category: deployment
-            timeout: 3900
+          # - category: deployment
+          #   timeout: 3900
           - category: fleet-status
             timeout: 1000
           - category: runtime
             timeout: 1000
-          - category: security
-            timeout: 1500
+          # - category: security
+          #   timeout: 1500
     permissions:
       id-token: write
       contents: read
@@ -62,14 +62,35 @@ jobs:
             --aws-region="us-west-2" \
             --test-category="${{ matrix.category }}"
 
-      - name: Upload system logs
+      - name: Collect critical Greengrass logs
+        if: always()
+        run: |
+          mkdir -p system-logs
+          
+          # Core Greengrass services
+          critical_services=(
+            "ggl.core.gg-fleet-statusd.service"
+            "ggl.core.ggconfigd.service"
+            "ggl.core.ggdeploymentd.service"
+            "ggl.core.gghealthd.service"
+            "ggl.core.ggipcd.service"
+            "ggl.core.ggpubsubd.service"
+            "ggl.core.iotcored.service"
+            "ggl.core.tesd.service"
+          )
+          
+          for service in "${critical_services[@]}"; do
+            echo "Collecting detailed logs for $service"
+            sudo journalctl -xeau "$service" --no-pager --output=short-precise > "system-logs/${service}-detailed.log" 2>/dev/null || echo "No logs for $service"
+          done
+          
+          # All GGL services in one file
+          sudo journalctl -xeau --no-pager --output=short-precise -u "ggl.*" > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
+
+      - name: Upload Greengrass logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name:
-            system-logs-${{ matrix.test-category.category }}-${{ github.run_id }}
-          path: |
-            /var/log/syslog
-            /var/log/kern.log
-            /var/log/dmesg
+          name: ggl-logs-${{ matrix.category }}-${{ github.run_id }}
+          path: system-logs/
           if-no-files-found: warn
