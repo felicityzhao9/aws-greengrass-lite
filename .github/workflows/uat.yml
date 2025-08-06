@@ -51,7 +51,7 @@ jobs:
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
-          echo "Deploying to ${{ matrix.test-category.category }}
+          echo "Deploying to ${{ matrix.test-category.category }}"
           ./run-tests.sh \
             --aws-account=${{ secrets.AWS_ACCOUNT_ID }} \
             --s3-bucket=${{ secrets.S3_BUCKET }} \
