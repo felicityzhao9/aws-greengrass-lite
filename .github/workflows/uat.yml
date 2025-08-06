@@ -12,14 +12,14 @@ jobs:
         include:
           - category: component
             timeout: 1000
-          # - category: deployment
-          #   timeout: 3900
+          - category: deployment
+            timeout: 3900
           - category: fleet-status
             timeout: 1000
           - category: runtime
             timeout: 1000
-          # - category: security
-          #   timeout: 1500
+          - category: security
+            timeout: 1500
     permissions:
       id-token: write
       contents: read
@@ -67,7 +67,6 @@ jobs:
         run: |
           mkdir -p system-logs
           
-          # Core Greengrass services
           critical_services=(
             "ggl.core.gg-fleet-statusd.service"
             "ggl.core.ggconfigd.service"
@@ -79,13 +78,13 @@ jobs:
             "ggl.core.tesd.service"
           )
           
+          # Collect individual service logs
           for service in "${critical_services[@]}"; do
-            echo "Collecting detailed logs for $service"
-            sudo journalctl -xeau "$service" --no-pager --output=short-precise > "system-logs/${service}-detailed.log" 2>/dev/null || echo "No logs for $service"
+            sudo journalctl -xeau "$service" --no-pager | sed 's/\x1b\[[0-9;]*m//g' > "system-logs/${service}.log" 2>/dev/null || echo "No logs for $service"
           done
           
-          # All GGL services in one file
-          sudo journalctl -xeau --no-pager --output=short-precise -u "ggl.*" > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
+          # Unified logs
+          sudo journalctl -xeau --no-pager -u "ggl.*" | sed 's/\x1b\[[0-9;]*m//g' > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
 
       - name: Upload Greengrass logs
         if: always()
