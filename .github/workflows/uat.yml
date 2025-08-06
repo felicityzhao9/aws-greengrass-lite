@@ -42,15 +42,6 @@ jobs:
           ref: python_testing
           path: aws-greengrass-testing
 
-      - name: Debug secrets and matrix values
-        run: |
-          echo "Matrix category: '${{ matrix.category }}'"
-          echo "Matrix timeout: '${{ matrix.timeout }}'"
-          echo "AWS Account ID exists: ${{ secrets.AWS_ACCOUNT_ID != '' }}"
-          echo "S3 Bucket exists: ${{ secrets.S3_BUCKET != '' }}"
-          echo "AWS Role exists: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}"
-          echo "Commit ID: '${{ github.event.pull_request.head.sha }}'"
-
       - name: Get temporary AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -63,15 +54,10 @@ jobs:
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
-          echo "About to run script with these values:"
-          echo "AWS Account: '${{ secrets.AWS_ACCOUNT_ID }}'"
-          echo "S3 Bucket: '${{ secrets.S3_BUCKET }}'"
-          echo "Commit ID: '${{ github.event.pull_request.head.sha }}'"
-          echo "Category: '${{ matrix.category }}'"
           
           ./run-tests.sh \
             --aws-account="${{ secrets.AWS_ACCOUNT_ID }}" \
             --s3-bucket="${{ secrets.S3_BUCKET }}" \
             --commit-id="${{ github.event.pull_request.head.sha }}" \
-            --aws-region=us-west-2 \
+            --aws-region="us-west-2" \
             --test-category="${{ matrix.category }}"
