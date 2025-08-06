@@ -9,14 +9,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-category:
-          [
-            { category: component, timeout: 1000 },
-            { category: deployment, timeout: 3900 },
-            { category: fleet-status, timeout: 1000 },
-            { category: runtime, timeout: 1000 },
-            { category: security, timeout: 1500 },
-          ]
+        include:
+          - category: component
+            timeout: 1000
+          - category: deployment
+            timeout: 3900
+          - category: fleet-status
+            timeout: 1000
+          - category: runtime
+            timeout: 1000
+          - category: security
+            timeout: 1500
     permissions:
       id-token: write
       contents: read
@@ -45,16 +48,10 @@ jobs:
           audience: sts.amazonaws.com
           aws-region: us-west-2
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-duration-seconds: ${{ matrix.test-category.timeout }}
+          role-duration-seconds: ${{ matrix.timeout }}
           unset-current-credentials: true
 
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
-          echo "Deploying to ${{ matrix.test-category.category }}"
-          ./run-tests.sh \
-            --aws-account=${{ secrets.AWS_ACCOUNT_ID }} \
-            --s3-bucket=${{ secrets.S3_BUCKET }} \
-            --commit-id=${{ github.event.pull_request.head.sha }} \
-            --aws-region=us-west-2 \
-            --test-category=${{ matrix.test-category.category }}
+          echo "Deploying to ${{ matrix.category }}"
