@@ -10,14 +10,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - category: component
-          #   timeout: 1000
+          - category: component
+            timeout: 1000
           # # - category: deployment
           # #   timeout: 3900
-          # - category: fleet-status
-          #   timeout: 1000
-          # - category: runtime
-          #   timeout: 1000
+          - category: fleet-status
+            timeout: 1000
+          - category: runtime
+            timeout: 1000
           - category: security
             timeout: 1500
     permissions:
@@ -54,7 +54,7 @@ jobs:
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
-          
+
           ./run-tests.sh \
             --aws-account="${{ secrets.AWS_ACCOUNT_ID }}" \
             --s3-bucket="${{ secrets.S3_BUCKET }}" \
@@ -66,7 +66,7 @@ jobs:
         if: always()
         run: |
           mkdir -p system-logs
-          
+
           critical_services=(
             "ggl.core.gg-fleet-statusd.service"
             "ggl.core.ggconfigd.service"
@@ -77,14 +77,14 @@ jobs:
             "ggl.core.iotcored.service"
             "ggl.core.tesd.service"
           )
-          
+
           # Collect individual service logs
           for service in "${critical_services[@]}"; do
-            sudo journalctl -xeau "$service" --no-pager --since "1 hour ago" | sed 's/\x1b\[[0-9;]*m//g' > "system-logs/${service}.log" 2>/dev/null || echo "No logs for $service"
+            sudo journalctl -xeau "$service" --no-pager --since "1 day ago" | sed 's/\x1b\[[0-9;]*m//g' > "system-logs/${service}.log" 2>/dev/null || echo "No logs for $service"
           done
-          
+
           # Unified logs
-          sudo journalctl -xeau --no-pager --since "1 hour ago" -u "ggl.*" | sed 's/\x1b\[[0-9;]*m//g' > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
+          sudo journalctl -xeau --no-pager --since "1 day ago" -u "ggl.*" | sed 's/\x1b\[[0-9;]*m//g' > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
 
       - name: Upload Greengrass logs
         if: always()
