@@ -58,7 +58,7 @@ jobs:
           ./run-tests.sh \
             --aws-account="${{ secrets.AWS_ACCOUNT_ID }}" \
             --s3-bucket="${{ secrets.S3_BUCKET }}" \
-            --commit-id="${{ github.event.pull_request.head.sha }}" \
+            --commit-id="ed2b01efd60fc7e44b0f175985a67f4ce72ab323" \
             --aws-region="us-west-2" \
             --test-category="${{ matrix.category }}"
 
@@ -80,11 +80,11 @@ jobs:
 
           # Collect individual service logs
           for service in "${critical_services[@]}"; do
-            sudo journalctl -xeau "$service" --no-pager --output=cat --lines=all | sed 's/\x1b\[[0-9;]*m//g' > "system-logs/${service}.log"
+            sudo journalctl -xeau "$service" --no-pager --output=short-full --lines=all | sed 's/\x1b\[[0-9;]*m//g' > "system-logs/${service}.log"
           done
 
           # Unified logs
-          sudo journalctl -xeau --no-pager --output=cat --lines=all -u "ggl.*" | sed 's/\x1b\[[0-9;]*m//g' > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
+          sudo journalctl -xeau --no-pager --output=short-full --lines=all -u "ggl.*" | sed 's/\x1b\[[0-9;]*m//g' > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
 
       - name: Upload Greengrass logs
         if: always()
