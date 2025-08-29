@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "../../ipc_authz.h"
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "pubsub.h"
@@ -11,7 +12,6 @@
 #include <ggl/core_bus/client.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
@@ -137,6 +137,6 @@ GglError ggl_handle_publish_to_topic(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#PublishToTopicResponse"),
-        ggl_obj_map((GglMap) { 0 })
+        (GglMap) { 0 }
     );
 }

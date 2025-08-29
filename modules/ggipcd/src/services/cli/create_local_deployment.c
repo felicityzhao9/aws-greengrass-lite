@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "../../ipc_authz.h"
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "cli.h"
@@ -10,7 +11,6 @@
 #include <ggl/buffer.h>
 #include <ggl/core_bus/client.h>
 #include <ggl/error.h>
-#include <ggl/ipc/error.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
@@ -25,7 +25,7 @@ GglError ggl_handle_create_local_deployment(
     GglIpcError *ipc_error,
     GglArena *alloc
 ) {
-    GGL_MAP_FOREACH(pair, args) {
+    GGL_MAP_FOREACH (pair, args) {
         if (ggl_buffer_eq(ggl_kv_key(*pair), GGL_STR("recipeDirectoryPath"))) {
             ggl_kv_set_key(pair, GGL_STR("recipe_directory_path"));
         } else if (ggl_buffer_eq(
@@ -93,6 +93,6 @@ GglError ggl_handle_create_local_deployment(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#CreateLocalDeploymentResponse"),
-        ggl_obj_map(GGL_MAP(ggl_kv(GGL_STR("deploymentId"), result)))
+        GGL_MAP(ggl_kv(GGL_STR("deploymentId"), result))
     );
 }

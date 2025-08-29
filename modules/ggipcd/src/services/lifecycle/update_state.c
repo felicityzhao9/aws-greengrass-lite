@@ -2,6 +2,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "lifecycle.h"
@@ -10,7 +11,6 @@
 #include <ggl/core_bus/client.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
@@ -74,6 +74,6 @@ GglError ggl_handle_update_state(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#UpdateStateResponse"),
-        ggl_obj_map((GglMap) { 0 })
+        (GglMap) { 0 }
     );
 }

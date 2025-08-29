@@ -6,7 +6,6 @@
 #include "deployment_model.h"
 #include <assert.h>
 #include <ggl/buffer.h>
-#include <ggl/constants.h>
 #include <ggl/core_bus/gg_config.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
@@ -44,7 +43,7 @@ static GglError apply_reset_config(
                  "during configuration updates.");
         return GGL_ERR_INVALID;
     }
-    GGL_LIST_FOREACH(reset_element, ggl_obj_into_list(*reset_configuration)) {
+    GGL_LIST_FOREACH (reset_element, ggl_obj_into_list(*reset_configuration)) {
         if (ggl_obj_type(*reset_element) != GGL_TYPE_BUF) {
             GGL_LOGE("Configuration key for reset config "
                      "update not provided as a buffer.");

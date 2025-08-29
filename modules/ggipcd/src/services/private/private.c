@@ -2,6 +2,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include <ggl/arena.h>
@@ -9,7 +10,6 @@
 #include <ggl/core_bus/gg_config.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
@@ -66,5 +66,10 @@ GglError handle_get_system_config(
         return ret;
     }
 
-    return ggl_ipc_response_send(handle, stream_id, GGL_STR(""), read_value);
+    return ggl_ipc_response_send(
+        handle,
+        stream_id,
+        GGL_STR(""),
+        GGL_MAP(ggl_kv(GGL_STR("value"), read_value))
+    );
 }

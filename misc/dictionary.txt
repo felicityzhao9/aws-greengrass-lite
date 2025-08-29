@@ -70,6 +70,7 @@ iotcoredfleet
 iwyu
 journalctl
 keyid
+ktls
 libcgroup
 libsystemd
 liburiparser
@@ -96,6 +97,7 @@ OSSL
 ostree
 parentid
 pidfd
+pkcs
 pkgs
 pname
 posix
@@ -104,6 +106,8 @@ ptid
 PTRACE
 Pypi
 pyproject
+rbio
+Renesas
 respfd
 rlimits
 rodata
@@ -132,6 +136,7 @@ unsuback
 uriparser
 uuid
 venv
+wbio
 WERROR
 xeau
 Xiwyu

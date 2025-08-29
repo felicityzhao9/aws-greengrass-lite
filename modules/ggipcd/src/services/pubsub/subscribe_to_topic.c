@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "../../ipc_authz.h"
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "../../ipc_subscriptions.h"
@@ -11,7 +12,6 @@
 #include <ggl/buffer.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
@@ -73,9 +73,9 @@ static GglError subscribe_to_topic_callback(
         )
     ));
 
-    GglObject response = ggl_obj_map(GGL_MAP(ggl_kv(
+    GglMap response = GGL_MAP(ggl_kv(
         is_json ? GGL_STR("jsonMessage") : GGL_STR("binaryMessage"), inner
-    )));
+    ));
 
     ret = ggl_ipc_response_send(
         resp_handle,
@@ -149,6 +149,6 @@ GglError ggl_handle_subscribe_to_topic(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#SubscribeToTopicResponse"),
-        ggl_obj_map((GglMap) { 0 })
+        (GglMap) { 0 }
     );
 }

@@ -14,8 +14,11 @@
 #include <limits.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #include <openssl/http.h>
+#include <openssl/prov_ssl.h>
 #include <openssl/ssl.h>
+#include <openssl/store.h>
 #include <openssl/types.h>
 #include <openssl/x509.h>
 #include <string.h>
@@ -118,6 +121,37 @@ static GglError proxy_get_info(
     return GGL_ERR_OK;
 }
 
+static void check_ktls_status(SSL *ssl) {
+    BIO *wbio = SSL_get_wbio(ssl);
+    BIO *rbio = SSL_get_rbio(ssl);
+
+    int tx_status = BIO_get_ktls_send(wbio);
+    int rx_status = BIO_get_ktls_recv(rbio);
+
+    GGL_LOGD("kTLS TX status: %d, RX status: %d", tx_status, rx_status);
+
+    if (BIO_get_ktls_send(wbio) < 1) {
+        GGL_LOGW("kTLS Tx is not fully active.");
+    }
+
+    if (BIO_get_ktls_recv(rbio) < 1) {
+        GGL_LOGW("kTLS Rx is not fully active.");
+    }
+}
+
+static void enable_ktls(SSL_CTX *ssl_ctx) {
+    // Force TLS 1.2 for better kTLS support
+    SSL_CTX_set_max_proto_version(ssl_ctx, TLS1_2_VERSION);
+
+    // Enable kTLS on the ctx
+    SSL_CTX_set_options(ssl_ctx, SSL_OP_ENABLE_KTLS);
+    if (!(SSL_CTX_get_options(ssl_ctx) & SSL_OP_ENABLE_KTLS)) {
+        GGL_LOGW("Failed to enable kTLS option on SSL ctx.");
+    }
+
+    GGL_LOGD("kTLS enabled successfully.");
+}
+
 static void cleanup_ssl_ctx(SSL_CTX **ctx) {
     if (*ctx != NULL) {
         SSL_CTX_free(*ctx);
@@ -149,16 +183,55 @@ static GglError create_tls_context(
         return GGL_ERR_CONFIG;
     }
 
-    if (SSL_CTX_use_PrivateKey_file(new_ssl_ctx, args->key, SSL_FILETYPE_PEM)
-        != 1) {
-        GGL_LOGE("Failed to load client private key.");
-        return GGL_ERR_CONFIG;
+    // Check if the private key is a TPM handle
+    if (strncmp(args->key, "handle:", 7) == 0) {
+        OSSL_STORE_CTX *store_ctx
+            = OSSL_STORE_open(args->key, NULL, NULL, NULL, NULL);
+        if (store_ctx == NULL) {
+            GGL_LOGE("Failed to open TPM key store.");
+            return GGL_ERR_NOMEM;
+        }
+
+        OSSL_STORE_INFO *info = OSSL_STORE_load(store_ctx);
+        if (info == NULL) {
+            GGL_LOGE("Failed to load TPM info.");
+            OSSL_STORE_close(store_ctx);
+            return GGL_ERR_CONFIG;
+        }
+
+        EVP_PKEY *pkey = OSSL_STORE_INFO_get1_PKEY(info);
+        OSSL_STORE_INFO_free(info);
+        OSSL_STORE_close(store_ctx);
+
+        if (pkey == NULL) {
+            GGL_LOGE("Failed to extract private key from TPM.");
+            return GGL_ERR_CONFIG;
+        }
+
+        if (SSL_CTX_use_PrivateKey(new_ssl_ctx, pkey) != 1) {
+            GGL_LOGE("Failed to use TPM private key.");
+            EVP_PKEY_free(pkey);
+            return GGL_ERR_CONFIG;
+        }
+
+        EVP_PKEY_free(pkey);
+    } else {
+        // Regular file-based key
+        if (SSL_CTX_use_PrivateKey_file(
+                new_ssl_ctx, args->key, SSL_FILETYPE_PEM
+            )
+            != 1) {
+            GGL_LOGE("Failed to load client private key.");
+            return GGL_ERR_CONFIG;
+        }
     }
 
     if (SSL_CTX_check_private_key(new_ssl_ctx) != 1) {
         GGL_LOGE("Client certificate and private key do not match.");
         return GGL_ERR_CONFIG;
     }
+
+    enable_ktls(new_ssl_ctx);
 
     ctx_cleanup = NULL;
     *ssl_ctx = new_ssl_ctx;
@@ -171,9 +244,11 @@ static GglError do_handshake(char *host, BIO *bio) {
 
     assert(ssl != NULL);
 
-    if (SSL_set_tlsext_host_name(ssl, host) != 1) {
-        GGL_LOGE("Failed to configure SNI.");
-        return GGL_ERR_FATAL;
+    if (host != NULL) {
+        if (SSL_set_tlsext_host_name(ssl, host) != 1) {
+            GGL_LOGE("Failed to configure SNI.");
+            return GGL_ERR_FATAL;
+        }
     }
 
     if (SSL_do_handshake(ssl) != 1) {
@@ -185,6 +260,8 @@ static GglError do_handshake(char *host, BIO *bio) {
         GGL_LOGE("Failed TLS server certificate verification.");
         return GGL_ERR_FAILURE;
     }
+
+    check_ktls_status(ssl);
 
     return GGL_ERR_OK;
 }
@@ -251,22 +328,76 @@ static GglError iotcored_proxy_connect_tunnel(
         GGL_LOGE("Failed http proxy connect.");
         return GGL_ERR_FAILURE;
     }
+
     return GGL_ERR_OK;
 }
 
 static GglError iotcored_tls_connect_https_proxy(
     const IotcoredArgs *args, IotcoredTlsCtx **ctx, GglUriInfo info
 ) {
-    (void) args;
-    (void) ctx;
-    (void) info;
-    // default fallback
+    // Set up TLS before attempting a connection
+    SSL_CTX *ssl_ctx = NULL;
+    GglError ret = create_tls_context(args, &ssl_ctx);
+    if (ret != GGL_ERR_OK) {
+        return ret;
+    }
+    GGL_CLEANUP_ID(ctx_cleanup, cleanup_ssl_ctx, ssl_ctx);
+
+    // Default fallback
     if (info.port.len == 0) {
         info.port = GGL_STR("443");
     }
-    // TODO: support this.
-    GGL_LOGE("HTTPS proxy unsupported.");
-    return GGL_ERR_UNSUPPORTED;
+
+    // Connect to proxy via HTTPS
+    BIO *mtls_proxy_bio = BIO_new_ssl_connect(ssl_ctx);
+    if (mtls_proxy_bio == NULL) {
+        GGL_LOGE("Failed to create proxy socket.");
+        return GGL_ERR_FATAL;
+    }
+    if (BIO_set_conn_hostname(mtls_proxy_bio, info.host.data) != 1) {
+        GGL_LOGE("Failed to set proxy hostname.");
+        return GGL_ERR_FATAL;
+    }
+    if (BIO_set_conn_port(mtls_proxy_bio, info.port.data) != 1) {
+        GGL_LOGE("Failed to set proxy port.");
+        return GGL_ERR_FATAL;
+    }
+    GGL_LOGD("Connecting to HTTPS proxy.");
+    ret = do_handshake(NULL, mtls_proxy_bio);
+    if (ret != GGL_ERR_OK) {
+        GGL_LOGE("Failed to connect and handshake with proxy.");
+        return ret;
+    }
+
+    // Connect the proxy server to IoT core and tunnel the connection
+    ret = iotcored_proxy_connect_tunnel(args, info, mtls_proxy_bio);
+    if (ret != GGL_ERR_OK) {
+        return ret;
+    }
+
+    // This BIO is used to talk to IoT core.
+    BIO *mqtt_bio = BIO_new_ssl(ssl_ctx, 1);
+    if (mqtt_bio == NULL) {
+        GGL_LOGE("Failed to create openssl BIO.");
+        return GGL_ERR_FATAL;
+    }
+    // MQTT BIO uses the underlying HTTPS TLS BIO as its source and sync.
+    BIO *mqtt_proxy_chain = BIO_push(mqtt_bio, mtls_proxy_bio);
+
+    // Do handshake with IoT core over the established HTTPS TLS connection.
+    ret = do_handshake(args->endpoint, mqtt_proxy_chain);
+    if (ret != GGL_ERR_OK) {
+        return ret;
+    }
+
+    // Since connection is established, cancel the cleanup.
+    ctx_cleanup = NULL;
+
+    conn = (IotcoredTlsCtx
+    ) { .ssl_ctx = ssl_ctx, .bio = mqtt_proxy_chain, .connected = true };
+    *ctx = &conn;
+
+    return GGL_ERR_OK;
 }
 
 static GglError iotcored_tls_connect_http_proxy(
@@ -309,7 +440,7 @@ static GglError iotcored_tls_connect_http_proxy(
         return GGL_ERR_FAILURE;
     }
 
-    // Perform TLS with the IoT endpoint thru the tunnel
+    // Connect to the HTTP tunnel.
     ret = iotcored_proxy_connect_tunnel(args, info, proxy_bio);
     if (ret != GGL_ERR_OK) {
         return ret;
@@ -322,6 +453,7 @@ static GglError iotcored_tls_connect_http_proxy(
         return ret;
     }
 
+    // Since connection is established, cancel the cleanup.
     ctx_cleanup = NULL;
 
     conn = (IotcoredTlsCtx

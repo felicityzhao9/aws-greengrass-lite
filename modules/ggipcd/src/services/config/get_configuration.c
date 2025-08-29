@@ -2,6 +2,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "config.h"
@@ -11,7 +12,6 @@
 #include <ggl/core_bus/gg_config.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/list.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
@@ -93,9 +93,9 @@ GglError ggl_handle_get_configuration(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#GetConfigurationResponse"),
-        ggl_obj_map(GGL_MAP(
+        GGL_MAP(
             ggl_kv(GGL_STR("componentName"), ggl_obj_buf(component_name)),
             ggl_kv(GGL_STR("value"), read_value)
-        ))
+        )
     );
 }

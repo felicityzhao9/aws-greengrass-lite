@@ -2,6 +2,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "config.h"
@@ -11,7 +12,6 @@
 #include <ggl/core_bus/gg_config.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/list.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
@@ -81,7 +81,7 @@ GglError ggl_handle_update_configuration(
     }
 
     if ((key_path.len == 0) && ggl_obj_type(*value_to_merge) == GGL_TYPE_MAP) {
-        GGL_MAP_FOREACH(kv, ggl_obj_into_map(*value_to_merge)) {
+        GGL_MAP_FOREACH (kv, ggl_obj_into_map(*value_to_merge)) {
             if (ggl_buffer_eq(ggl_kv_key(*kv), GGL_STR("accessControl"))) {
                 GGL_LOGE(
                     "Received invalid parameters. Can not change component "
@@ -126,6 +126,6 @@ GglError ggl_handle_update_configuration(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#UpdateConfigurationResponse"),
-        ggl_obj_map((GglMap) { 0 })
+        (GglMap) { 0 }
     );
 }

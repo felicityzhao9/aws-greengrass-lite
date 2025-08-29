@@ -2,6 +2,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../../ipc_error.h"
 #include "../../ipc_server.h"
 #include "../../ipc_service.h"
 #include "../../ipc_subscriptions.h"
@@ -9,10 +10,8 @@
 #include "config_path_object.h"
 #include <ggl/arena.h>
 #include <ggl/buffer.h>
-#include <ggl/constants.h>
 #include <ggl/error.h>
 #include <ggl/flags.h>
-#include <ggl/ipc/error.h>
 #include <ggl/list.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
@@ -40,7 +39,7 @@ static GglError subscribe_to_configuration_update_callback(
         return err;
     }
 
-    GglObject ipc_response = ggl_obj_map(GGL_MAP(
+    GglMap ipc_response = GGL_MAP(
         ggl_kv(
             GGL_STR("configurationUpdateEvent"),
             ggl_obj_map(GGL_MAP(
@@ -48,7 +47,7 @@ static GglError subscribe_to_configuration_update_callback(
                 ggl_kv(GGL_STR("keyPath"), ggl_obj_list(key_path)),
             ))
         ),
-    ));
+    );
 
     err = ggl_ipc_response_send(
         resp_handle,
@@ -171,6 +170,6 @@ GglError ggl_handle_subscribe_to_configuration_update(
         handle,
         stream_id,
         GGL_STR("aws.greengrass#SubscribeToConfigurationUpdateResponse"),
-        ggl_obj_map((GglMap) { 0 })
+        (GglMap) { 0 }
     );
 }
