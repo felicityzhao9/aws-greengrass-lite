@@ -36,7 +36,7 @@ jobs:
       - name: Checkout testing repository
         uses: actions/checkout@v4
         with:
-          repository: felicityzhao9/aws-greengrass-testing
+          repository: felicityzhao9/aws-greengrass-testing #TODO: need to change
           ref: python_testing
           path: aws-greengrass-testing
 
@@ -59,6 +59,7 @@ jobs:
             --aws-region=us-west-2 \
             --test-category=${{ matrix.test-category.category }}
 
+      #TODO: need to remove
       - name: Upload system logs
         if: always()
         uses: actions/upload-artifact@v4
