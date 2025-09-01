@@ -1,7 +1,7 @@
 name: UAT Component Tests
 
 on:
-  push:
+  pull_request: #TODO: change it back to push?
     branches:
       - main
 
