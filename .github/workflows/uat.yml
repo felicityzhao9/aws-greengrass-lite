@@ -1,7 +1,7 @@
 name: UAT Component Tests
 
 on:
-  push:
+  pull_request: #TODO: change it back to push?
     branches:
       - main
 
@@ -10,14 +10,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-category:
-          [
-            { category: component, timeout: 1000 },
-            { category: deployment, timeout: 3900 },
-            { category: fleet-status, timeout: 1000 },
-            { category: runtime, timeout: 1000 },
-            { category: security, timeout: 1500 },
-          ]
+        include:
+          - category: component
+            timeout: 1000
+          - category: deployment
+            timeout: 3900
+          - category: fleet-status
+            timeout: 1000
+          - category: runtime
+            timeout: 1000
+          - category: security
+            timeout: 1500
     permissions:
       id-token: write
       contents: read
@@ -36,7 +39,7 @@ jobs:
       - name: Checkout testing repository
         uses: actions/checkout@v4
         with:
-          repository: felicityzhao9/aws-greengrass-testing
+          repository: felicityzhao9/aws-greengrass-testing #TODO: need to change
           ref: python_testing
           path: aws-greengrass-testing
 
@@ -46,27 +49,49 @@ jobs:
           audience: sts.amazonaws.com
           aws-region: us-west-2
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-duration-seconds: ${{ matrix.test-category.timeout }}
+          role-duration-seconds: ${{ matrix.timeout }}
           unset-current-credentials: true
 
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
-          ./run-tests.sh \
-            --aws-account=${{ secrets.AWS_ACCOUNT_ID }} \
-            --s3-bucket=${{ secrets.S3_BUCKET }} \
-            --commit-id=${{ github.event.pull_request.head.sha }} \
-            --aws-region=us-west-2 \
-            --test-category=${{ matrix.test-category.category }}
 
-      - name: Upload system logs
+          ./run-tests.sh \
+            --aws-account="${{ secrets.AWS_ACCOUNT_ID }}" \
+            --s3-bucket="${{ secrets.S3_BUCKET }}" \
+            --commit-id="cf6789832e2911ff164daa103f515f4f0862a3d3" \
+            --aws-region="us-west-2" \
+            --test-category="${{ matrix.category }}"
+
+      - name: Collect critical Greengrass logs
+        if: always()
+        run: |
+          mkdir -p system-logs
+
+          critical_services=(
+            "ggl.core.gg-fleet-statusd.service"
+            "ggl.core.ggconfigd.service"
+            "ggl.core.ggdeploymentd.service"
+            "ggl.core.gghealthd.service"
+            "ggl.core.ggipcd.service"
+            "ggl.core.ggpubsubd.service"
+            "ggl.core.iotcored.service"
+            "ggl.core.tesd.service"
+          )
+
+          # Collect individual service logs
+          for service in "${critical_services[@]}"; do
+            sudo journalctl -xeau "$service" --no-pager --output=short-full --lines=all | sed 's/\x1b\[[0-9;]*m//g' > "system-logs/${service}.log"
+          done
+
+          # Unified logs
+          sudo journalctl -xeau --no-pager --output=short-full --lines=all -u "ggl.*" | sed 's/\x1b\[[0-9;]*m//g' > system-logs/all-ggl-services.log 2>/dev/null || echo "No GGL services found"
+
+      - name: Upload Greengrass logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name:
-            system-logs-${{ matrix.test-category.category }}-${{ github.run_id}}
-          path: |
-            /var/log/syslog
-            /var/log/kern.log
-            /var/log/dmesg
+          name: ggl-logs-${{ matrix.category }}-${{ github.run_id }}
+          path: system-logs/
+          retention-days: 7
           if-no-files-found: warn
