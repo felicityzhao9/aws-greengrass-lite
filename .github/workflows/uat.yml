@@ -13,8 +13,8 @@ jobs:
         include:
           - category: component
             timeout: 1000
-          # # - category: deployment
-          # #   timeout: 3900
+          - category: deployment
+            timeout: 3900
           - category: fleet-status
             timeout: 1000
           - category: runtime
