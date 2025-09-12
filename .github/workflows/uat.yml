@@ -52,6 +52,11 @@ jobs:
           role-duration-seconds: ${{ matrix.timeout }}
           unset-current-credentials: true
 
+      - name: Set SHA to github env
+        run: |
+          echo ${{ github.event.pull_request.head.sha }} > ./pr/SHA
+          echo "SHA=$(cat SHA | tr -cd 'a-fA-F0-9')" >> $GITHUB_ENV
+
       - name: Run UAT tests
         run: |
           cd aws-greengrass-testing
@@ -59,7 +64,7 @@ jobs:
           ./run-tests.sh \
             --aws-account="${{ secrets.AWS_ACCOUNT_ID }}" \
             --s3-bucket="${{ secrets.S3_BUCKET }}" \
-            --commit-id="cf6789832e2911ff164daa103f515f4f0862a3d3" \
+            --commit-id="${{ env.SHA }}" \
             --aws-region="us-west-2" \
             --test-category="${{ matrix.category }}"
 
