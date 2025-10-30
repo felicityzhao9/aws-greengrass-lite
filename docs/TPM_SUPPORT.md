@@ -202,20 +202,14 @@ sudo usermod -a -G tss ggcore
 ```bash
 sudo mkdir -p /var/lib/greengrass/credentials
 sudo cp device.pem AmazonRootCA1.pem /var/lib/greengrass/credentials/
-sudo chown -R ggcore:ggcore /var/lib/greengrass/credentials
+sudo chown -R ggcore:ggcore /var/lib/greengrass
 ```
 
 **Note**: Since we're using persistent TPM keys, no private key file needs to be
 copied.
 
-### 7.5 Create Greengrass Directory
 
-```bash
-sudo mkdir /var/lib/greengrass
-sudo chown ggcore:ggcore /var/lib/greengrass
-```
-
-### 7.6 Configure Greengrass
+### 7.5 Configure Greengrass
 
 Copy and modify the configuration file:
 
@@ -228,8 +222,8 @@ Edit `config.yaml` with the following TPM-specific configuration:
 ```yaml
 system:
   privateKeyPath: "handle:0x81000002" # Use your chosen handle
-  certificateFilePath: "/etc/greengrass/ggcredentials/device.pem"
-  rootCaPath: "/etc/greengrass/ggcredentials/AmazonRootCA1.pem"
+  certificateFilePath: "/var/lib/greengrass/credentials/device.pem"
+  rootCaPath: "/var/lib/greengrass/credentials/AmazonRootCA1.pem"
   rootPath: "/var/lib/greengrass"
   thingName: "TPMThing"
   # Add your iotCredEndpoint, iotDataEndpoint, and iotRoleAlias
@@ -238,6 +232,7 @@ system:
 Copy the configuration to the system location:
 
 ```bash
+sudo mkdir -p /etc/greengrass/
 sudo cp ./config.yaml /etc/greengrass/config.yaml
 ```
 

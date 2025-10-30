@@ -77,9 +77,7 @@ Then run:
 ```
 sudo mkdir -p /var/lib/greengrass/credentials
 //cp your aws credentials(device certificates, private key, root ca) to this folder
-chown -R ggcore:ggcore /var/lib/greengrass/credentials
-
-chown ggcore:ggcore /var/lib/greengrass
+chown -R ggcore:ggcore /var/lib/greengrass
 ```
 
 When [building](#building), provide this user and group via the
@@ -127,9 +125,9 @@ A sample config file for the container is below:
 
 ```yml
 system:
-  privateKeyPath: "/var/lib/greengrass/certs/device.key"
-  certificateFilePath: "/var/lib/greengrass/certs/device.pem"
-  rootCaPath: "/var/lib/greengrass/certs/AmazonRootCA1.pem"
+  privateKeyPath: "/var/lib/greengrass/credentials/device.key"
+  certificateFilePath: "/var/lib/greengrass/credentials/device.pem"
+  rootCaPath: "/var/lib/greengrass/credentials/AmazonRootCA1.pem"
   thingName: "ExampleGreengrassCore"
 services:
   aws.greengrass.NucleusLite:
@@ -147,7 +145,7 @@ podman. These steps allow you to enter a pre-configured container:
 sudo apt install podman
 podman build . -t ggl:latest
 podman run -it -v $PWD/run/config.yaml:/etc/greengrass/config.yaml \
-  -v $PWD/run/certs:/var/lib/greengrass/certs \
+  -v $PWD/run/certs:/var/lib/greengrass/credentials \
   --replace --name ggl ggl:latest
 ```
 
@@ -160,7 +158,7 @@ podman run -it -v $PWD/run/config.yaml:/etc/greengrass/config.yaml \
   --replace --name ggl ggl:latest
 ```
 
-You may need to run `chown -R ggcore:ggcore /var/lib/greengrass/certs`.
+You may need to run `chown -R ggcore:ggcore /var/lib/greengrass`.
 
 Note to not bind over the entirety of `/etc/greengrass` (this will hide the
 default config fragment in the container).
