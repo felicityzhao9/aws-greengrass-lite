@@ -208,7 +208,6 @@ sudo chown -R ggcore:ggcore /var/lib/greengrass
 **Note**: Since we're using persistent TPM keys, no private key file needs to be
 copied.
 
-
 ### 7.5 Configure Greengrass
 
 Copy and modify the configuration file:
