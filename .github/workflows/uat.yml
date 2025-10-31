@@ -42,6 +42,18 @@ jobs:
           ref: python_testing
           path: aws-greengrass-testing
 
+      - name: Debug GitHub Actions context
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Role ARN exists: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}"
+          echo "Role ARN length: ${#AWS_ROLE_TO_ASSUME}"
+          echo "First 20 chars: ${AWS_ROLE_TO_ASSUME:0:20}"
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
       - name: Get temporary AWS credentials
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
