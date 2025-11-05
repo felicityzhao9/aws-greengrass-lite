@@ -1,3 +1,31 @@
+# Release Notes v2.3.0
+
+This release includes support for using TPM 2.0 for IoT Core MQTT authorization
+and the `RestartComponent` IPC command.
+
+## Breaking Changes
+
+`GetConfiguration` has been updated to match the Greengrass nucleus runtime
+behavior. With this release, the nucleus lite runtime will return the same
+results as nucleus when used with the AWS IoT Device SDKs. Users of
+aws-greengrass-sdk-lite will need to update to version 0.3.0 of the SDK.
+
+Recipe manifests must now have the platform runtime set to `aws_nucleus_lite` or
+`*`. A missing platform runtime is now correctly handled as classic only.
+
+## New with this release
+
+- Local deployments no longer require internet access.
+- The minimum TLS protocol version is now set to 1.2.
+- TPM 2.0 persistent handles in the `privateKeyPath` config are supported. For
+  instructions, see the documentation here:
+  https://github.com/aws-greengrass/aws-greengrass-lite/blob/main/docs/TPM_SUPPORT.md
+- Updated the sample fleet provisioning template.
+- The sample APT packages now support more operating systems: Ubuntu 22.04,
+  Ubuntu 24.04, Debian 12, and Debian 13.
+- Moved the fleet provisioning credentials storage path to
+  `/var/lib/greengrass/credentials`.
+
 # Release Notes v2.2.2
 
 This release fixes the folowing bugs:
