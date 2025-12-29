@@ -9,7 +9,6 @@
 #include <gg/vector.h>
 #include <ggl/binpath.h>
 #include <ggl/nucleus/init.h>
-#include <stdbool.h>
 
 static char doc[] = "fleet-provisioning -- AWS IoT Fleet Provisioning client";
 
@@ -56,12 +55,6 @@ static struct argp_option opts[]
           OPTION_ARG_OPTIONAL,
           "Directory for storing generated files",
           0 },
-        { "use-tpm",
-          'u',
-          0,
-          OPTION_ARG_OPTIONAL,
-          "Use TPM for cryptographic operation",
-          0 },
         { 0 } };
 
 static error_t arg_parser(int key, char *arg, struct argp_state *state) {
@@ -87,9 +80,6 @@ static error_t arg_parser(int key, char *arg, struct argp_state *state) {
         break;
     case 'o':
         args->output_dir = arg;
-        break;
-    case 'u':
-        args->use_tpm = true;
         break;
     default:
         return ARGP_ERR_UNKNOWN;

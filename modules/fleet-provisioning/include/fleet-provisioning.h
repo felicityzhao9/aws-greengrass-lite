@@ -6,7 +6,6 @@
 #define FLEET_PROVISIONING_H
 
 #include <gg/error.h>
-#include <stdbool.h>
 
 typedef struct {
     char *claim_cert;
@@ -21,7 +20,6 @@ typedef struct {
     char *csr_path;
     char *cert_path;
     char *key_path;
-    bool use_tpm;
 } FleetProvArgs;
 
 GgError run_fleet_prov(FleetProvArgs *args);
