@@ -157,16 +157,15 @@ static GgError find_docker_uri_separators(
     size_t at_count = 0;
     for (size_t position = uri.len; position > 0; position--) {
         if (uri.data[position - 1] == '/') {
-            if (*slash_count < 2) {
-                slashes[*slash_count] = position - 1;
-                *slash_count += 1;
-                GG_LOGT("Found a slash while parsing Docker URI");
-                continue;
+            GG_LOGT("Found a slash while parsing Docker URI");
+            if (*slash_count == 0) {
+                slashes[0] = position - 1;
+                *slash_count = 1;
+            } else {
+                slashes[1] = position - 1;
+                *slash_count = 2;
             }
-            GG_LOGE(
-                "More than two slashes found while parsing Docker URI, URI is invalid."
-            );
-            return GG_ERR_INVALID;
+            continue;
         }
         if (uri.data[position - 1] == ':') {
             if (*colon_count < 3) {
