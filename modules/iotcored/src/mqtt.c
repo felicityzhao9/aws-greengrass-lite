@@ -50,13 +50,10 @@
 #define IOTCORED_MQTT_MAX_PUBLISH_RECORDS 10
 
 static uint32_t time_ms(void);
-static bool event_callback(
+static void event_callback(
     MQTTContext_t *ctx,
     MQTTPacketInfo_t *packet_info,
-    MQTTDeserializedInfo_t *deserialized_info,
-    MQTTSuccessFailReasonCode_t *reason_code,
-    MQTTPropBuilder_t *send_props,
-    MQTTPropBuilder_t *get_props
+    MQTTDeserializedInfo_t *deserialized_info
 );
 
 struct NetworkContext {
@@ -64,7 +61,7 @@ struct NetworkContext {
 };
 
 typedef struct {
-    uint32_t handle;
+    uint16_t packet_id;
     uint8_t *serialized_packet;
     size_t serialized_packet_len;
 } StoredPublish;
@@ -117,7 +114,7 @@ static uint32_t time_ms(void) {
 static uint8_t *mqtt_pub_alloc(size_t length) {
     size_t i = 0;
     for (; i < IOTCORED_MQTT_MAX_PUBLISH_RECORDS; i++) {
-        if (unacked_publishes[i].handle == 0) {
+        if (unacked_publishes[i].packet_id == 0) {
             break;
         }
     }
@@ -154,7 +151,7 @@ static uint8_t *mqtt_pub_alloc(size_t length) {
 static void mqtt_pub_free(const uint8_t *ptr) {
     size_t i = 0;
     for (; i < IOTCORED_MQTT_MAX_PUBLISH_RECORDS; i++) {
-        if ((unacked_publishes[i].handle != 0)
+        if ((unacked_publishes[i].packet_id != 0)
             && (unacked_publishes[i].serialized_packet == ptr)) {
             break;
         }
@@ -186,11 +183,11 @@ static void mqtt_pub_free(const uint8_t *ptr) {
 
         // Compact the records.
         for (; i < IOTCORED_MQTT_MAX_PUBLISH_RECORDS - 1; i++) {
-            if (unacked_publishes[i + 1].handle == 0) {
+            if (unacked_publishes[i + 1].packet_id == 0) {
                 break;
             }
 
-            unacked_publishes[i].handle = unacked_publishes[i + 1].handle;
+            unacked_publishes[i].packet_id = unacked_publishes[i + 1].packet_id;
             unacked_publishes[i].serialized_packet
                 = unacked_publishes[i + 1].serialized_packet - byte_offset;
             unacked_publishes[i].serialized_packet_len
@@ -199,7 +196,7 @@ static void mqtt_pub_free(const uint8_t *ptr) {
     }
 
     // Clear the last record.
-    unacked_publishes[i].handle = 0;
+    unacked_publishes[i].packet_id = 0;
     unacked_publishes[i].serialized_packet = NULL;
     unacked_publishes[i].serialized_packet_len = 0;
 
@@ -213,12 +210,12 @@ static void mqtt_pub_free(const uint8_t *ptr) {
 }
 
 static bool mqtt_store_packet(
-    MQTTContext_t *context, uint32_t handle, MQTTVec_t *mqtt_vec
+    MQTTContext_t *context, uint16_t packet_id, MQTTVec_t *mqtt_vec
 ) {
     (void) context;
     size_t i;
     for (i = 0; i < IOTCORED_MQTT_MAX_PUBLISH_RECORDS; i++) {
-        if (unacked_publishes[i].handle == 0) {
+        if (unacked_publishes[i].packet_id == 0) {
             break;
         }
     }
@@ -228,11 +225,7 @@ static bool mqtt_store_packet(
         return false;
     }
 
-    size_t memory_needed = 0;
-    if (MQTT_GetBytesInMQTTVec(mqtt_vec, &memory_needed) != MQTTSuccess) {
-        GG_LOGE("Failed to get bytes in MQTTVec.");
-        return false;
-    }
+    size_t memory_needed = MQTT_GetBytesInMQTTVec(mqtt_vec);
 
     uint8_t *allocated_mem = mqtt_pub_alloc(memory_needed);
     if (allocated_mem == NULL) {
@@ -241,50 +234,50 @@ static bool mqtt_store_packet(
 
     MQTT_SerializeMQTTVec(allocated_mem, mqtt_vec);
 
-    unacked_publishes[i].handle = handle;
+    unacked_publishes[i].packet_id = packet_id;
     unacked_publishes[i].serialized_packet = allocated_mem;
     unacked_publishes[i].serialized_packet_len = memory_needed;
 
-    GG_LOGD("Stored MQTT publish (handle: %u).", handle);
+    GG_LOGD("Stored MQTT publish (ID: %d).", packet_id);
     return true;
 }
 
 static bool mqtt_retrieve_packet(
     MQTTContext_t *context,
-    uint32_t handle,
+    uint16_t packet_id,
     uint8_t **serialized_mqtt_vec,
     size_t *serialized_mqtt_vec_len
 ) {
     (void) context;
 
     for (size_t i = 0; i < IOTCORED_MQTT_MAX_PUBLISH_RECORDS; i++) {
-        if (unacked_publishes[i].handle == handle) {
+        if (unacked_publishes[i].packet_id == packet_id) {
             *serialized_mqtt_vec = unacked_publishes[i].serialized_packet;
             *serialized_mqtt_vec_len
                 = unacked_publishes[i].serialized_packet_len;
 
-            GG_LOGD("Retrieved MQTT publish (handle: %u).", handle);
+            GG_LOGD("Retrived MQTT publish (ID: %d).", packet_id);
             return true;
         }
     }
 
-    GG_LOGE("No packet with handle %u present.", handle);
+    GG_LOGE("No packet with ID %d present.", packet_id);
 
     return false;
 }
 
-static void mqtt_clear_packet(MQTTContext_t *context, uint32_t handle) {
+static void mqtt_clear_packet(MQTTContext_t *context, uint16_t packet_id) {
     (void) context;
 
     for (size_t i = 0; i < IOTCORED_MQTT_MAX_PUBLISH_RECORDS; i++) {
-        if (unacked_publishes[i].handle == handle) {
+        if (unacked_publishes[i].packet_id == packet_id) {
             mqtt_pub_free(unacked_publishes[i].serialized_packet);
-            GG_LOGD("Cleared MQTT publish (handle: %u).", handle);
+            GG_LOGD("Cleared MQTT publish (ID: %d).", packet_id);
             return;
         }
     }
 
-    GG_LOGE("Cannot find the handle to clear.");
+    GG_LOGE("Cannot find the packet ID to clear.");
 }
 
 // Establish TLS and MQTT connection to the AWS IoT broker.
@@ -322,9 +315,7 @@ static GgError establish_connection(void *ctx) {
         &conn_info,
         NULL,
         IOTCORED_CONNACK_TIMEOUT * 1000,
-        &server_session,
-        NULL,
-        NULL
+        &server_session
     );
 
     if (mqtt_ret != MQTTSuccess) {
@@ -459,7 +450,7 @@ noreturn static void *mqtt_recv_thread_fn(void *arg) {
             }
         }
 
-        (void) MQTT_Disconnect(ctx, NULL, NULL);
+        (void) MQTT_Disconnect(ctx);
         iotcored_tls_cleanup(ctx->transportInterface.pNetworkContext->tls_ctx);
 
         // Send status update to indicate mqtt disconnection.
@@ -527,9 +518,7 @@ GgError iotcored_mqtt_connect(const IotcoredArgs *args) {
         outgoing_publish_records,
         sizeof(outgoing_publish_records) / sizeof(*outgoing_publish_records),
         &incoming_publish_record,
-        1,
-        NULL,
-        0
+        1
     );
     assert(mqtt_ret == MQTTSuccess);
 
@@ -585,8 +574,7 @@ GgError iotcored_mqtt_publish(const IotcoredMsg *msg, uint8_t qos) {
             .payloadLength = msg->payload.len,
             .qos = (MQTTQoS_t) qos,
         },
-        MQTT_GetPacketId(&mqtt_ctx),
-        NULL
+        MQTT_GetPacketId(&mqtt_ctx)
     );
 
     if (result != MQTTSuccess) {
@@ -627,7 +615,7 @@ GgError iotcored_mqtt_subscribe(
     }
 
     MQTTStatus_t result = MQTT_Subscribe(
-        &mqtt_ctx, sub_infos, count, MQTT_GetPacketId(&mqtt_ctx), NULL
+        &mqtt_ctx, sub_infos, count, MQTT_GetPacketId(&mqtt_ctx)
     );
 
     if (result != MQTTSuccess) {
@@ -665,7 +653,7 @@ GgError iotcored_mqtt_unsubscribe(GgBuffer *topic_filters, size_t count) {
     }
 
     MQTTStatus_t result = MQTT_Unsubscribe(
-        &mqtt_ctx, sub_infos, count, MQTT_GetPacketId(&mqtt_ctx), NULL
+        &mqtt_ctx, sub_infos, count, MQTT_GetPacketId(&mqtt_ctx)
     );
 
     if (result != MQTTSuccess) {
@@ -700,27 +688,16 @@ bool iotcored_mqtt_topic_filter_match(GgBuffer topic_filter, GgBuffer topic) {
     return (result == MQTTSuccess) && matches;
 }
 
-static bool event_callback(
+static void event_callback(
     MQTTContext_t *ctx,
     MQTTPacketInfo_t *packet_info,
-    MQTTDeserializedInfo_t *deserialized_info,
-    // NOLINTNEXTLINE(readability-non-const-parameter)
-    MQTTSuccessFailReasonCode_t *reason_code,
-    MQTTPropBuilder_t *send_props,
-    MQTTPropBuilder_t *get_props
+    MQTTDeserializedInfo_t *deserialized_info
 ) {
     assert(ctx != NULL);
     assert(packet_info != NULL);
     assert(deserialized_info != NULL);
 
     (void) ctx;
-    (void) reason_code;
-    (void) send_props;
-    (void) get_props;
-
-    /* Greengrass connects to IoT Core as a client only. IoT Core does not
-     * initiate QoS 2 publishes to clients, so PUBREC/PUBREL/PUBCOMP for
-     * incoming publishes are not expected here. */
 
     if ((packet_info->type & 0xF0U) == MQTT_PACKET_TYPE_PUBLISH) {
         assert(deserialized_info->pPublishInfo != NULL);
@@ -767,15 +744,8 @@ static bool event_callback(
             GG_LOGD("Received pingresp.");
             ping_pending = false;
             break;
-        case MQTT_PACKET_TYPE_DISCONNECT:
-            /* Server-initiated disconnect. The receive thread will detect the
-             * connection loss and reconnect automatically. */
-            GG_LOGE("Server-initiated DISCONNECT received.");
-            break;
         default:
             GG_LOGE("Received unknown packet type %02x.", packet_info->type);
         }
     }
-
-    return true;
 }
